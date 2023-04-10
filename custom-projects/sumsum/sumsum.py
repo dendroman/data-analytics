@@ -3,9 +3,10 @@ import base64
 import yt_dlp
 import time
 from pydub import AudioSegment
+import streamlit as st
 
 # define openai api key and stuff
-openai.api_key = ('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')
+openai.api_key = (st.secrets["OPENAPI_TOKEN"])
 
 def download_audio(url, output_file='output.mp3'):
     ydl_opts = {
