@@ -17,7 +17,6 @@ def download_audio(url, output_file='output.mp3'):
             'preferredquality': '192',
         }],
         'outtmpl': output_file,
-        'ffmpeg_location': 'C:\\users\\chibi\\ffmpeg\\bin\\',
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
