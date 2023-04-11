@@ -7,7 +7,11 @@
     function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
 
-    gtag('config', 'G-V0V80K7W5H');
+    gtag('config', 'G-V0V80K7W5H', {
+        'linker': {
+          'domains': ['sumsum.streamlit.app', 'dendroman.github.io/data-analytics/', 'sumsum.app']
+        }
+      });
   </script>
   <head>
     <title>SumSum</title>
