@@ -130,3 +130,6 @@ dmypy.json
 
 # Secrets TOML
 secrets.toml
+
+# mp3
+*.mp3
