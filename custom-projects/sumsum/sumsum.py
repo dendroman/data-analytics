@@ -97,7 +97,7 @@ def summarize_text(text):
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a assistant who is excellent of making summaries. You only respond with bullet-points and nothing else."},
+                {"role": "system", "content": "You are a assistant who is excellent of making summaries. You respond with bullet-point summary first. After the summary, you add actionable insights if there is any to be made. if not then add nothing after the bullet points"},
                 {"role": "user", "content": chunk + " create a summary of the text above with key insights and bullet points."},
             ]
         )
