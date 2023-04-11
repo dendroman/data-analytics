@@ -4,9 +4,40 @@ import yt_dlp
 import time
 import streamlit as st
 import os
+import re
 import glob
 from pydub import AudioSegment
 from youtube_transcript_api import YouTubeTranscriptApi
+from urllib.parse import urlparse, parse_qs
+import tiktoken
+
+def count_tokens(text):
+    enc = tiktoken.get_encoding("cl100k_base")
+    token_count = len(enc.encode(text))
+    return token_count
+
+
+def split_text(text, max_tokens):
+    enc = tiktoken.get_encoding("cl100k_base")
+    tokens = enc.encode(text)
+    chunks = []
+    current_chunk = []
+
+    for token in tokens:
+        current_chunk.append(token)
+        if len(current_chunk) + count_tokens(" create a summary of the text above with key insights and bullet points.") > max_tokens:
+            chunks.append(enc.decode(current_chunk[:-1]))
+            current_chunk = [token]
+
+    if current_chunk:
+        chunks.append(enc.decode(current_chunk))
+
+    return chunks
+
+MAX_TOKENS = 4096
+SYSTEM_TOKENS = 19  # Tokens used by the system message
+USER_PROMPT_TOKENS = 20  # Estimate of tokens used by the user prompt without the content
+OUTPUT_TOKENS = 50  # Estimated tokens for the output summary
 
 # define openai api key and stuff
 openai.api_key = (st.secrets["OPENAPI_TOKEN"])
@@ -56,19 +87,26 @@ def get_sample_rate(file_path):
 
 
 def summarize_text(text):
-    # OpenAI summary
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a assistant who is excellent of making summaries. You only respond with bullet-points and nothing else."},
-            {"role": "user", "content": text + " create a summary of the text above with key insights and bullet points."},
-        ]
-    )
+    available_tokens = MAX_TOKENS - SYSTEM_TOKENS - USER_PROMPT_TOKENS - OUTPUT_TOKENS
 
-    print(response)
-    print(response.choices[0].message.content)
+    text_chunks = split_text(text, available_tokens)
 
-    return response.choices[0].message.content
+    summaries = []
+
+    for chunk in text_chunks:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a assistant who is excellent of making summaries. You only respond with bullet-points and nothing else."},
+                {"role": "user", "content": chunk + " create a summary of the text above with key insights and bullet points."},
+            ]
+        )
+        #summaries.append(response.choices[0].text.strip())
+        summaries.append(response.choices[0].message.content.strip())
+
+    combined_summary = "\n".join(summaries)
+
+    return combined_summary
 
 def download_audio_from_video(video_url):
     # Download audio
@@ -95,8 +133,38 @@ def concat_transcripts(transcripts):
 
     return concatted_transcript.strip()
 
+def get_youtube_video_id(url):
+    parsed_url = urlparse(url)
+
+    if parsed_url.netloc in ("www.youtube.com", "youtube.com"):
+        query_params = parse_qs(parsed_url.query)
+        if "v" in query_params:
+            return query_params["v"][0]
+
+    elif parsed_url.netloc == "youtu.be":
+        return parsed_url.path[1:]  # Remove the leading '/'
+
+    return None
+
+def is_youtube_url(url):
+    parsed_url = urlparse(url)
+    youtube_domains = ("www.youtube.com", "youtube.com", "youtu.be")
+
+    print(parsed_url.netloc)
+
+    if parsed_url.netloc not in youtube_domains:
+        return False
+
+    if parsed_url.netloc in ("www.youtube.com", "youtube.com") and re.match(r"^/watch\?.*v=.*", parsed_url.path + '?' + parsed_url.query):
+        return True
+
+    if parsed_url.netloc == "youtu.be" and parsed_url.path:
+        return True
+
+    return False
+
 def get_concatted_transcript(url):
-    video_id = url.split('watch?v=')[-1]
+    video_id = get_youtube_video_id(url)
     transcripts = get_transcript_by_id(video_id)
     concatted_transcripts = concat_transcripts(transcripts)
 

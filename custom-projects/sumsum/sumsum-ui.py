@@ -1,22 +1,6 @@
 import streamlit as st
-import re
-from urllib.parse import urlparse
-from sumsum import do_the_thing, get_title
+from sumsum import do_the_thing, get_title, is_youtube_url
 
-def is_youtube_url(url):
-    parsed_url = urlparse(url)
-    youtube_domains = ("www.youtube.com", "youtube.com", "youtu.be")
-
-    if parsed_url.netloc not in youtube_domains:
-        return False
-
-    if parsed_url.netloc in ("www.youtube.com", "youtube.com") and re.match(r"^/watch\?v=.*", parsed_url.path):
-        return True
-
-    if parsed_url.netloc == "youtu.be" and parsed_url.path:
-        return True
-
-    return False
 
 st.markdown("## SumSum - A YouTube Summarizer :movie_camera:")
 st.write("Enter a YouTube URL to get started!")
